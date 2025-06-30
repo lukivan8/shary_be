@@ -1,0 +1,12 @@
+-- Insert sample rental items
+INSERT INTO items (title, description, image_url, price_per_day, location, is_available) VALUES
+('Mountain Bike - Trek Marlin 7', 'High-quality mountain bike perfect for trail riding. Features 21-speed Shimano drivetrain, hydraulic disc brakes, and durable aluminum frame.', 'https://example.com/images/mountain-bike.jpg', 25.00, 'San Francisco, CA', true),
+('Electric Scooter - Xiaomi M365', 'Portable electric scooter with 18.6 mph max speed and 18.6-mile range. Perfect for urban commuting and short trips.', 'https://example.com/images/electric-scooter.jpg', 15.50, 'San Francisco, CA', true),
+('Camping Tent - 4-Person Coleman', 'Spacious 4-person tent with weather-resistant design. Easy setup with color-coded poles and included rainfly.', 'https://example.com/images/camping-tent.jpg', 30.00, 'Lake Tahoe, CA', true),
+('Kayak - Inflatable 2-Person', 'Durable inflatable kayak perfect for lakes and calm rivers. Includes paddles, pump, and carrying bag.', 'https://example.com/images/kayak.jpg', 40.00, 'Lake Tahoe, CA', true),
+('Camera - Canon EOS R6', 'Professional mirrorless camera with 20.1MP sensor, 4K video, and advanced autofocus. Includes 24-105mm lens.', 'https://example.com/images/camera.jpg', 75.00, 'Los Angeles, CA', true),
+('Drone - DJI Mini 3 Pro', 'Ultralight drone with 4K camera, 34-minute flight time, and obstacle avoidance. Perfect for aerial photography.', 'https://example.com/images/drone.jpg', 60.00, 'Los Angeles, CA', true),
+('Surfboard - 6ft Shortboard', 'High-performance shortboard for intermediate to advanced surfers. Custom shaped for optimal wave riding.', 'https://example.com/images/surfboard.jpg', 35.00, 'San Diego, CA', true),
+('Golf Clubs - Complete Set', 'Full set of golf clubs including driver, irons, wedges, and putter. Includes golf bag and headcovers.', 'https://example.com/images/golf-clubs.jpg', 45.00, 'Palm Springs, CA', true),
+('Snowboard - Burton Custom', 'Premium snowboard with camber profile for excellent edge control and stability at high speeds.', 'https://example.com/images/snowboard.jpg', 50.00, 'Mammoth Lakes, CA', true),
+('Boat - 16ft Fishing Boat', 'Aluminum fishing boat with 25hp outboard motor. Includes fishing gear, life jackets, and trailer.', 'https://example.com/images/fishing-boat.jpg', 150.00, 'Sacramento, CA', true); 
