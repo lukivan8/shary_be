@@ -204,3 +204,22 @@ func (r *ItemRepository) GetAvailableItems() ([]models.Item, error) {
 
 	return items, nil
 }
+
+// GetByCategory retrieves items by category
+func (r *ItemRepository) GetByCategory(categoryID int) ([]models.Item, error) {
+	var items []models.Item
+	query := `
+        SELECT 
+            id, title, description, price, location, has_photos, 
+            author_id, category_id, created_at, updated_at 
+        FROM items 
+        WHERE category_id = $1
+        ORDER BY created_at DESC`
+
+	err := r.db.Select(&items, query, categoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	return items, nil
+}

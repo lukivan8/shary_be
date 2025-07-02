@@ -69,3 +69,4 @@ func (u *UpdateItemRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(u)
 }
+
