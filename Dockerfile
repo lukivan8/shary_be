@@ -51,7 +51,7 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
     echo '' >> /app/start.sh && \
     echo '# Run database migrations' >> /app/start.sh && \
     echo 'echo "Running database migrations..."' >> /app/start.sh && \
-    echo 'migrate -path /app/migrations -database "$DATABASE_URL" up' >> /app/start.sh && \
+    echo 'migrate -path /app/migrations -database "$DATABASE_URL" up || exit 1' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
     echo '# Start the application' >> /app/start.sh && \
     echo 'echo "Starting application..."' >> /app/start.sh && \
