@@ -1,4 +1,7 @@
--- Create items table
+-- Revert changes to items table
+
+DROP TABLE IF EXISTS items CASCADE;
+
 CREATE TABLE IF NOT EXISTS items (
     id SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,

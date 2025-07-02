@@ -36,10 +36,10 @@ func (s *ItemService) CreateItem(req *models.CreateItemRequest) (*models.Item, e
 	item := &models.Item{
 		Title:       req.Title,
 		Description: req.Description,
-		ImageURL:    req.ImageURL,
-		PricePerDay: req.PricePerDay,
+		Price:       req.Price,
 		Location:    req.Location,
-		IsAvailable: true, // Default to available
+		AuthorID:    req.AuthorID,
+		CategoryID:  req.CategoryID,
 	}
 
 	if err := s.itemRepo.Create(item); err != nil {
@@ -113,17 +113,14 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 	if req.Description != nil {
 		item.Description = *req.Description
 	}
-	if req.ImageURL != nil {
-		item.ImageURL = *req.ImageURL
-	}
-	if req.PricePerDay != nil {
-		item.PricePerDay = *req.PricePerDay
+	if req.Price != nil {
+		item.Price = *req.Price
 	}
 	if req.Location != nil {
 		item.Location = *req.Location
 	}
-	if req.IsAvailable != nil {
-		item.IsAvailable = *req.IsAvailable
+	if req.CategoryID != nil {
+		item.CategoryID = *req.CategoryID
 	}
 
 	// Update item in database

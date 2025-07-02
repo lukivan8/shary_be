@@ -52,12 +52,6 @@ func (h *ItemHandler) GetAllItems(w http.ResponseWriter, r *http.Request) {
 		filter.Location = &location
 	}
 
-	if availableStr := r.URL.Query().Get("available"); availableStr != "" {
-		if available, err := strconv.ParseBool(availableStr); err == nil {
-			filter.IsAvailable = &available
-		}
-	}
-
 	if search := r.URL.Query().Get("search"); search != "" {
 		filter.Search = &search
 	}
