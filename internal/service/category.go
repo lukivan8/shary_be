@@ -21,7 +21,7 @@ func NewCategoryService(categoryRepo *repository.CategoryRepository, logger *zap
 }
 
 // GetAll retrieves all categories
-func (s *CategoryService) GetAllCategories() ([]	models.Category, error) {
+func (s *CategoryService) GetAllCategories() ([]models.Category, error) {
 	categories, err := s.categoryRepo.GetAll()
 	if err != nil {
 		s.logger.Error("Failed to get all categories", zap.Error(err))
@@ -41,7 +41,7 @@ func (s *CategoryService) CreateCategory(req *models.CreateCategoryRequest) (*mo
 
 	// Create category
 	category := &models.Category{
-		Name:        req.Name,
+		Name: req.Name,
 	}
 
 	if err := s.categoryRepo.Create(category); err != nil {

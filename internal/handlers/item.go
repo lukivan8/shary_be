@@ -232,7 +232,6 @@ func (h *ItemHandler) GetItemsByLocation(w http.ResponseWriter, r *http.Request)
 func (h *ItemHandler) GetItemsByCategory(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Extract category ID from Chi URL parameters
 	categoryIDStr := chi.URLParam(r, "category_id")
 	categoryID, err := strconv.Atoi(categoryIDStr)
 	if err != nil {

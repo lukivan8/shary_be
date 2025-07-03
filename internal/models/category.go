@@ -8,20 +8,20 @@ import (
 
 // Category represents a category of rent items
 type Category struct {
-	ID          int       `json:"id" db:"id"`
-	Name        string    `json:"name" db:"name" validate:"required,min=1,max=50"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	ID        int       `json:"id" db:"id"`
+	Name      string    `json:"name" db:"name" validate:"required,min=1,max=50"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // CreateCategoryRequest represents the request to create a new category
 type CreateCategoryRequest struct {
-	Name        string  `json:"name" validate:"required,min=1,max=50"`
+	Name string `json:"name" validate:"required,min=1,max=50"`
 }
 
 // UpdateCategoryRequest represents the request to update a category
 type UpdateCategoryRequest struct {
-	Name        *string  `json:"name,omitempty" validate:"omitempty,min=1,max=50"`
+	Name *string `json:"name,omitempty" validate:"omitempty,min=1,max=50"`
 }
 
 // Validate validates the struct using go-playground/validator

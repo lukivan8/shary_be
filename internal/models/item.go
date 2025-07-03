@@ -52,6 +52,26 @@ type ItemFilter struct {
 	CategoryID *int     `json:"category_id,omitempty" validate:"omitempty,min=1"`
 }
 
+// CategoryInfo represents a short category info for embedding in other responses
+type CategoryInfo struct {
+	ID   int    `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
+}
+
+// ItemResponse is a struct for the API response that includes full category info
+type ItemResponse struct {
+	ID          int          `json:"id" db:"id"`
+	Title       string       `json:"title" db:"title"`
+	Description string       `json:"description" db:"description"`
+	Price       float64      `json:"price" db:"price"`
+	Location    string       `json:"location" db:"location"`
+	HasPhotos   bool         `json:"has_photos" db:"has_photos"`
+	AuthorID    int          `json:"author_id" db:"author_id"`
+	Category    CategoryInfo `json:"category" db:"category"`
+	CreatedAt   time.Time    `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at" db:"updated_at"`
+}
+
 // Validate validates the struct using go-playground/validator
 func (i *Item) Validate() error {
 	validate := validator.New()
@@ -69,4 +89,3 @@ func (u *UpdateItemRequest) Validate() error {
 	validate := validator.New()
 	return validate.Struct(u)
 }
-

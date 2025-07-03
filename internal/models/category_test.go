@@ -6,28 +6,28 @@ import (
 
 func TestCategory_Validate(t *testing.T) {
 	tests := []struct {
-		name    string
+		name     string
 		category Category
-		wantErr bool
+		wantErr  bool
 	}{
 		{
 			name: "valid category",
 			category: Category{
-				Name:        "Mountain Bike",
+				Name: "Mountain Bike",
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid name",
 			category: Category{
-				Name:        "",
+				Name: "",
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid description",
 			category: Category{
-				Name:        "Mountain Bike",
+				Name: "Mountain Bike",
 			},
 			wantErr: true,
 		},
@@ -52,14 +52,13 @@ func TestCreateCategoryRequest_Validate(t *testing.T) {
 		{
 			name: "valid request",
 			req: CreateCategoryRequest{
-				Name:        "Mountain Bike",
+				Name: "Mountain Bike",
 			},
 			wantErr: false,
 		},
 		{
-			name: "missing name",
-			req: CreateCategoryRequest{
-			},
+			name:    "missing name",
+			req:     CreateCategoryRequest{},
 			wantErr: true,
 		},
 	}

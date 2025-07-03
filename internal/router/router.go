@@ -15,8 +15,8 @@ import (
 func SetupRouter(
 	itemHandler *handlers.ItemHandler,
 	categoryHandler *handlers.CategoryHandler,
-	 logger *zap.Logger,
-	) http.Handler {
+	logger *zap.Logger,
+) http.Handler {
 	r := chi.NewRouter()
 
 	// Add Chi's built-in middleware

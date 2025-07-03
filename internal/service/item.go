@@ -183,7 +183,7 @@ func (s *ItemService) GetAvailableItems() ([]models.Item, error) {
 }
 
 // GetItemsByCategory retrieves items by category
-func (s *ItemService) GetItemsByCategory(categoryID int) ([]models.Item, error) {
+func (s *ItemService) GetItemsByCategory(categoryID int) ([]models.ItemResponse, error) {
 	if categoryID <= 0 {
 		return nil, errors.New("category_id must be greater than 0")
 	}

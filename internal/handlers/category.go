@@ -12,13 +12,13 @@ import (
 
 type CategoryHandler struct {
 	categoryService *service.CategoryService
-	logger *zap.Logger
+	logger          *zap.Logger
 }
 
 func NewCategoryHandler(categoryService *service.CategoryService, logger *zap.Logger) *CategoryHandler {
 	return &CategoryHandler{
 		categoryService: categoryService,
-		logger: logger,
+		logger:          logger,
 	}
 }
 
