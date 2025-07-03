@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -35,6 +36,15 @@ func Load() *Config {
 	if databaseURL == "" {
 		// Default local PostgreSQL connection string
 		databaseURL = "postgres://postgres:password@localhost:5432/shary_be?sslmode=disable"
+	} else {
+		// Ensure sslmode=disable is present in the DATABASE_URL
+		if !contains(databaseURL, "sslmode=") {
+			if contains(databaseURL, "?") {
+				databaseURL += "&sslmode=disable"
+			} else {
+				databaseURL += "?sslmode=disable"
+			}
+		}
 	}
 
 	environment := os.Getenv("ENVIRONMENT")
@@ -53,4 +63,8 @@ func Load() *Config {
 		Environment: environment,
 		LogLevel:    logLevel,
 	}
+}
+
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
 }

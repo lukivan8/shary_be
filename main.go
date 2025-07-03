@@ -56,13 +56,15 @@ func main() {
 	// Initialize database connection
 	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
 	if err != nil {
-		logger.Fatal("Failed to connect to database", zap.Error(err))
+		logger.Error("Failed to connect to database", zap.Error(err))
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	// Test database connection
 	if err := db.Ping(); err != nil {
-		logger.Fatal("Failed to ping database", zap.Error(err))
+		logger.Error("Failed to ping database", zap.Error(err))
+		os.Exit(1)
 	}
 	logger.Info("Successfully connected to database")
 
