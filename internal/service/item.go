@@ -52,7 +52,7 @@ func (s *ItemService) CreateItem(req *models.CreateItemRequest) (*models.Item, e
 }
 
 // GetItemByID retrieves an item by ID
-func (s *ItemService) GetItemByID(id int) (*models.Item, error) {
+func (s *ItemService) GetItemByID(id int) (*models.ItemResponse, error) {
 	item, err := s.itemRepo.GetByID(id)
 	if err != nil {
 		s.logger.Error("Failed to get item by ID", zap.Int("item_id", id), zap.Error(err))
@@ -67,7 +67,7 @@ func (s *ItemService) GetItemByID(id int) (*models.Item, error) {
 }
 
 // GetAllItems retrieves all items with optional filtering
-func (s *ItemService) GetAllItems(filter *models.ItemFilter) ([]models.Item, error) {
+func (s *ItemService) GetAllItems(filter *models.ItemFilter) ([]models.ItemResponse, error) {
 	// Set default pagination if not provided
 	if filter != nil {
 		if filter.Limit <= 0 {
@@ -88,49 +88,63 @@ func (s *ItemService) GetAllItems(filter *models.ItemFilter) ([]models.Item, err
 }
 
 // UpdateItem updates an item
-func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models.Item, error) {
-	// Validate request
+func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models.ItemResponse, error) {
 	if err := req.Validate(); err != nil {
 		s.logger.Error("Invalid update item request", zap.Error(err))
 		return nil, err
 	}
 
-	// Get existing item
-	item, err := s.itemRepo.GetByID(id)
+	currentItemResponse, err := s.itemRepo.GetByID(id)
 	if err != nil {
 		s.logger.Error("Failed to get item for update", zap.Int("item_id", id), zap.Error(err))
 		return nil, err
 	}
-
-	if item == nil {
+	if currentItemResponse == nil {
 		return nil, sql.ErrNoRows
 	}
 
-	// Update fields if provided
-	if req.Title != nil {
-		item.Title = *req.Title
-	}
-	if req.Description != nil {
-		item.Description = *req.Description
-	}
-	if req.Price != nil {
-		item.Price = *req.Price
-	}
-	if req.Location != nil {
-		item.Location = *req.Location
-	}
-	if req.CategoryID != nil {
-		item.CategoryID = *req.CategoryID
+	itemToUpdate := &models.Item{
+		ID:          currentItemResponse.ID,
+		Title:       currentItemResponse.Title,
+		Description: currentItemResponse.Description,
+		Price:       currentItemResponse.Price,
+		Location:    currentItemResponse.Location,
+		HasPhotos:   currentItemResponse.HasPhotos,
+		AuthorID:    currentItemResponse.AuthorID,
+		CategoryID:  currentItemResponse.Category.ID, 
+		CreatedAt:   currentItemResponse.CreatedAt,
 	}
 
-	// Update item in database
-	if err := s.itemRepo.Update(item); err != nil {
+	if req.Title != nil {
+		itemToUpdate.Title = *req.Title
+	}
+	if req.Description != nil {
+		itemToUpdate.Description = *req.Description
+	}
+	if req.Price != nil {
+		itemToUpdate.Price = *req.Price
+	}
+	if req.Location != nil {
+		itemToUpdate.Location = *req.Location
+	}
+	if req.CategoryID != nil {
+		itemToUpdate.CategoryID = *req.CategoryID 
+	}
+
+	if err := s.itemRepo.Update(itemToUpdate); err != nil {
 		s.logger.Error("Failed to update item", zap.Int("item_id", id), zap.Error(err))
 		return nil, err
 	}
 
+	// 5. Снова получаем обновленные данные в формате ItemResponse, чтобы вернуть их клиенту
+	updatedItem, err := s.itemRepo.GetByID(id)
+	if err != nil {
+		s.logger.Error("Failed to get updated item after update", zap.Int("item_id", id), zap.Error(err))
+		return nil, err
+	}
+
 	s.logger.Info("Item updated successfully", zap.Int("item_id", id))
-	return item, nil
+	return updatedItem, nil
 }
 
 // DeleteItem deletes an item
@@ -157,7 +171,7 @@ func (s *ItemService) DeleteItem(id int) error {
 }
 
 // GetItemsByLocation retrieves items by location
-func (s *ItemService) GetItemsByLocation(location string) ([]models.Item, error) {
+func (s *ItemService) GetItemsByLocation(location string) ([]models.ItemResponse, error) {
 	if location == "" {
 		return nil, errors.New("location cannot be empty")
 	}
@@ -172,10 +186,25 @@ func (s *ItemService) GetItemsByLocation(location string) ([]models.Item, error)
 }
 
 // GetAvailableItems retrieves only available items
-func (s *ItemService) GetAvailableItems() ([]models.Item, error) {
+func (s *ItemService) GetAvailableItems() ([]models.ItemResponse, error) {
 	items, err := s.itemRepo.GetAvailableItems()
 	if err != nil {
 		s.logger.Error("Failed to get available items", zap.Error(err))
+		return nil, err
+	}
+
+	return items, nil
+}
+
+// GetItemsByCategory retrieves items by category
+func (s *ItemService) GetItemsByCategory(categoryID int) ([]models.ItemResponse, error) {
+	if categoryID <= 0 {
+		return nil, errors.New("category_id must be greater than 0")
+	}
+
+	items, err := s.itemRepo.GetByCategory(categoryID)
+	if err != nil {
+		s.logger.Error("Failed to get items by category", zap.Int("category_id", categoryID), zap.Error(err))
 		return nil, err
 	}
 
