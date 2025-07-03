@@ -56,6 +56,12 @@ func (h *ItemHandler) GetAllItems(w http.ResponseWriter, r *http.Request) {
 		filter.Search = &search
 	}
 
+	if categoryIDStr := r.URL.Query().Get("category_id"); categoryIDStr != "" {
+		if categoryID, err := strconv.Atoi(categoryIDStr); err == nil && categoryID > 0 {
+			filter.CategoryID = &categoryID
+		}
+	}
+
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
 			filter.Limit = limit

@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"shary_be/internal/models"
@@ -46,9 +47,9 @@ func (r *ItemRepository) Create(item *models.Item) error {
 }
 
 // GetByID retrieves an item by ID
-func (r *ItemRepository) GetByID(id int) (*models.Item, error) {
-	var item models.Item
-	query := `SELECT id, title, description, price, location, has_photos, author_id, category_id, created_at, updated_at FROM items WHERE id = $1`
+func (r *ItemRepository) GetByID(id int) (*models.ItemResponse, error) {
+	var item models.ItemResponse
+	query := `SELECT i.id, i.title, i.description, i.price, i.location, i.has_photos, i.author_id, i.category_id, i.created_at, i.updated_at, c.id AS "category.id", c.name AS "category.name" FROM items i LEFT JOIN categories c ON i.category_id = c.id WHERE i.id = $1`
 
 	err := r.db.Get(&item, query, id)
 	if err != nil {
@@ -62,61 +63,70 @@ func (r *ItemRepository) GetByID(id int) (*models.Item, error) {
 }
 
 // GetAll retrieves all items with optional filtering
-func (r *ItemRepository) GetAll(filter *models.ItemFilter) ([]models.Item, error) {
-	var items []models.Item
+func (r *ItemRepository) GetAll(filter *models.ItemFilter) ([]models.ItemResponse, error) {
+	var items []models.ItemResponse
+
+	var queryBuilder strings.Builder
 
 	// Build dynamic query with filters
-	query := `SELECT id, title, description, price, location FROM items WHERE 1=1`
+	queryBuilder.WriteString(`
+        SELECT
+            i.id, i.title, i.description, i.price, i.location, i.has_photos, i.author_id, i.created_at, i.updated_at,
+            c.id AS "category.id",
+            c.name AS "category.name"
+        FROM items i
+        LEFT JOIN categories c ON i.category_id = c.id
+        WHERE 1=1
+    `)
+
 	var args []interface{}
-	argIndex := 1
 
 	// Add filters
 	if filter != nil {
 		if filter.MinPrice != nil {
-			query += fmt.Sprintf(" AND price >= $%d", argIndex)
+			queryBuilder.WriteString(" AND i.price >= ?")
 			args = append(args, *filter.MinPrice)
-			argIndex++
 		}
-
 		if filter.MaxPrice != nil {
-			query += fmt.Sprintf(" AND price <= $%d", argIndex)
+			queryBuilder.WriteString(" AND i.price <= ?")
 			args = append(args, *filter.MaxPrice)
-			argIndex++
 		}
-
 		if filter.Location != nil && *filter.Location != "" {
-			query += fmt.Sprintf(" AND LOWER(location) LIKE LOWER($%d)", argIndex)
+			queryBuilder.WriteString(" AND LOWER(i.location) LIKE LOWER(?)")
 			args = append(args, "%"+*filter.Location+"%")
-			argIndex++
 		}
-
 		if filter.Search != nil && *filter.Search != "" {
-			query += fmt.Sprintf(" AND (LOWER(title) LIKE LOWER($%d) OR LOWER(description) LIKE LOWER($%d))", argIndex, argIndex)
-			args = append(args, "%"+*filter.Search+"%")
-			argIndex++
+			queryBuilder.WriteString(" AND (LOWER(i.title) LIKE LOWER(?) OR LOWER(i.description) LIKE LOWER(?))")
+			searchTerm := "%" + *filter.Search + "%"
+			args = append(args, searchTerm, searchTerm)
+		}
+		if filter.CategoryID != nil {
+			queryBuilder.WriteString(" AND i.category_id = ?")
+			args = append(args, *filter.CategoryID)
 		}
 	}
 
 	// Add ordering
-	query += " ORDER BY created_at DESC"
+	queryBuilder.WriteString(" ORDER BY i.created_at DESC")
+
 
 	// Add pagination
 	if filter != nil {
 		if filter.Limit > 0 {
-			query += fmt.Sprintf(" LIMIT $%d", argIndex)
+			queryBuilder.WriteString(" LIMIT ?")
 			args = append(args, filter.Limit)
-			argIndex++
 		}
-
 		if filter.Offset > 0 {
-			query += fmt.Sprintf(" OFFSET $%d", argIndex)
+			queryBuilder.WriteString(" OFFSET ?")
 			args = append(args, filter.Offset)
 		}
 	}
 
+	query := r.db.Rebind(queryBuilder.String())
+
 	err := r.db.Select(&items, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get all items with filter: %w", err)
 	}
 
 	return items, nil
@@ -180,9 +190,9 @@ func (r *ItemRepository) Delete(id int) error {
 }
 
 // GetByLocation retrieves items by location
-func (r *ItemRepository) GetByLocation(location string) ([]models.Item, error) {
-	var items []models.Item
-	query := `SELECT id, title, description, price, location, has_photos, author_id, category_id, created_at, updated_at FROM items WHERE LOWER(location) LIKE LOWER($1) ORDER BY created_at DESC`
+func (r *ItemRepository) GetByLocation(location string) ([]models.ItemResponse, error) {
+	var items []models.ItemResponse
+	query := `SELECT i.id, i.title, i.description, i.price, i.location, i.has_photos, i.author_id, i.category_id, i.created_at, i.updated_at, c.id AS "category.id", c.name AS "category.name" FROM items i LEFT JOIN categories c ON i.category_id = c.id WHERE LOWER(i.location) LIKE LOWER($1) ORDER BY i.created_at DESC`
 
 	err := r.db.Select(&items, query, "%"+location+"%")
 	if err != nil {
@@ -193,9 +203,9 @@ func (r *ItemRepository) GetByLocation(location string) ([]models.Item, error) {
 }
 
 // GetAvailableItems retrieves only available items
-func (r *ItemRepository) GetAvailableItems() ([]models.Item, error) {
-	var items []models.Item
-	query := `SELECT id, title, description, price, location, has_photos, author_id, category_id, created_at, updated_at FROM items ORDER BY created_at DESC`
+func (r *ItemRepository) GetAvailableItems() ([]models.ItemResponse, error) {
+	var items []models.ItemResponse
+	query := `SELECT i.id, i.title, i.description, i.price, i.location, i.has_photos, i.author_id, i.category_id, i.created_at, i.updated_at, c.id AS "category.id", c.name AS "category.name" FROM items i LEFT JOIN categories c ON i.category_id = c.id ORDER BY i.created_at DESC`
 
 	err := r.db.Select(&items, query)
 	if err != nil {
@@ -204,25 +214,6 @@ func (r *ItemRepository) GetAvailableItems() ([]models.Item, error) {
 
 	return items, nil
 }
-
-// // GetByCategory retrieves items by category
-// func (r *ItemRepository) GetByCategory(categoryID int) ([]models.Item, error) {
-// 	var items []models.Item
-// 	query := `
-//         SELECT
-//             id, title, description, price, location, has_photos,
-//             author_id, category_id, created_at, updated_at
-//         FROM items
-//         WHERE category_id = $1
-//         ORDER BY created_at DESC`
-
-// 	err := r.db.Select(&items, query, categoryID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return items, nil
-// }
 
 // GetByCategory gets items by category with category info
 func (r *ItemRepository) GetByCategory(categoryID int) ([]models.ItemResponse, error) {
