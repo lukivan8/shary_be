@@ -37,13 +37,13 @@ func (h *ItemHandler) GetAllItems(w http.ResponseWriter, r *http.Request) {
 	filter := &models.ItemFilter{}
 
 	if minPriceStr := r.URL.Query().Get("min_price"); minPriceStr != "" {
-		if minPrice, err := strconv.ParseFloat(minPriceStr, 64); err == nil {
+		if minPrice, err := strconv.Atoi(minPriceStr); err == nil {
 			filter.MinPrice = &minPrice
 		}
 	}
 
 	if maxPriceStr := r.URL.Query().Get("max_price"); maxPriceStr != "" {
-		if maxPrice, err := strconv.ParseFloat(maxPriceStr, 64); err == nil {
+		if maxPrice, err := strconv.Atoi(maxPriceStr); err == nil {
 			filter.MaxPrice = &maxPrice
 		}
 	}

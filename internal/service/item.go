@@ -120,7 +120,7 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 		item.Location = *req.Location
 	}
 	if req.CategoryID != nil {
-		item.CategoryID = *req.CategoryID
+		item.CategoryID = req.CategoryID
 	}
 
 	// Update item in database

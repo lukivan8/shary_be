@@ -15,8 +15,9 @@ func TestItem_Validate(t *testing.T) {
 			item: Item{
 				Title:       "Mountain Bike",
 				Description: "High-quality mountain bike perfect for trail riding",
-				Price:       25.50,
+				Price:       25,
 				Location:    "San Francisco, CA",
+				AuthorID:    1,
 			},
 			wantErr: false,
 		},
@@ -25,8 +26,9 @@ func TestItem_Validate(t *testing.T) {
 			item: Item{
 				Title:       "",
 				Description: "High-quality mountain bike perfect for trail riding",
-				Price:       25.50,
+				Price:       25,
 				Location:    "San Francisco, CA",
+				AuthorID:    1,
 			},
 			wantErr: true,
 		},
@@ -35,8 +37,9 @@ func TestItem_Validate(t *testing.T) {
 			item: Item{
 				Title:       "Mountain Bike",
 				Description: "Too short",
-				Price:       25.50,
+				Price:       25,
 				Location:    "San Francisco, CA",
+				AuthorID:    1,
 			},
 			wantErr: true,
 		},
@@ -45,8 +48,9 @@ func TestItem_Validate(t *testing.T) {
 			item: Item{
 				Title:       "Mountain Bike",
 				Description: "High-quality mountain bike perfect for trail riding",
-				Price:       -10.0,
+				Price:       -10,
 				Location:    "San Francisco, CA",
+				AuthorID:    1,
 			},
 			wantErr: true,
 		},
@@ -63,6 +67,7 @@ func TestItem_Validate(t *testing.T) {
 }
 
 func TestCreateItemRequest_Validate(t *testing.T) {
+	categoryID := 1
 	tests := []struct {
 		name    string
 		req     CreateItemRequest
@@ -73,9 +78,9 @@ func TestCreateItemRequest_Validate(t *testing.T) {
 			req: CreateItemRequest{
 				Title:       "Mountain Bike",
 				Description: "High-quality mountain bike perfect for trail riding",
-				Price:       25.50,
+				Price:       25,
 				Location:    "San Francisco, CA",
-				CategoryID:  1,
+				CategoryID:  &categoryID,
 				AuthorID:    1,
 			},
 			wantErr: false,
@@ -84,13 +89,26 @@ func TestCreateItemRequest_Validate(t *testing.T) {
 			name: "missing title",
 			req: CreateItemRequest{
 				Description: "High-quality mountain bike perfect for trail riding",
-				Price:       25.50,
+				Price:       25,
 				Location:    "San Francisco, CA",
 				Photos:      []string{"https://example.com/bike.jpg", "https://example.com/bike2.jpg"},
-				CategoryID:  1,
+				CategoryID:  &categoryID,
 				AuthorID:    1,
 			},
 			wantErr: true,
+		},
+		{
+			name: "valid request with tags",
+			req: CreateItemRequest{
+				Title:       "Mountain Bike",
+				Description: "High-quality mountain bike perfect for trail riding",
+				Price:       25,
+				Location:    "San Francisco, CA",
+				CategoryID:  &categoryID,
+				AuthorID:    1,
+				Tags:        []string{"bike", "mountain", "sport"},
+			},
+			wantErr: false,
 		},
 	}
 
