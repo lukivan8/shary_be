@@ -111,7 +111,7 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 		Location:    currentItemResponse.Location,
 		HasPhotos:   currentItemResponse.HasPhotos,
 		AuthorID:    currentItemResponse.AuthorID,
-		CategoryID:  currentItemResponse.Category.ID, 
+		CategoryID:  currentItemResponse.Category.ID,
 		CreatedAt:   currentItemResponse.CreatedAt,
 	}
 
@@ -128,7 +128,7 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 		itemToUpdate.Location = *req.Location
 	}
 	if req.CategoryID != nil {
-		itemToUpdate.CategoryID = *req.CategoryID 
+		itemToUpdate.CategoryID = *req.CategoryID
 	}
 
 	if err := s.itemRepo.Update(itemToUpdate); err != nil {

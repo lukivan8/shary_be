@@ -109,7 +109,6 @@ func (r *ItemRepository) GetAll(filter *models.ItemFilter) ([]models.ItemRespons
 	// Add ordering
 	queryBuilder.WriteString(" ORDER BY i.created_at DESC")
 
-
 	// Add pagination
 	if filter != nil {
 		if filter.Limit > 0 {
