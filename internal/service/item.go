@@ -32,17 +32,24 @@ func (s *ItemService) CreateItem(req *models.CreateItemRequest) (*models.Item, e
 		return nil, err
 	}
 
+	var photos []string
+
 	// Create item
 	item := &models.Item{
 		Title:       req.Title,
 		Description: req.Description,
 		Price:       req.Price,
 		Location:    req.Location,
+		HasPhotos:   false,
 		AuthorID:    req.AuthorID,
 		CategoryID:  req.CategoryID,
 	}
 
-	if err := s.itemRepo.Create(item); err != nil {
+	if req.Photos != nil {
+		photos = req.Photos
+	}
+
+	if err := s.itemRepo.Create(item, photos); err != nil {
 		s.logger.Error("Failed to create item", zap.Error(err))
 		return nil, err
 	}
@@ -111,7 +118,7 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 		Location:    currentItemResponse.Location,
 		HasPhotos:   currentItemResponse.HasPhotos,
 		AuthorID:    currentItemResponse.AuthorID,
-		CategoryID:  currentItemResponse.Category.ID, 
+		CategoryID:  currentItemResponse.Category.ID,
 		CreatedAt:   currentItemResponse.CreatedAt,
 	}
 
@@ -128,7 +135,7 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 		itemToUpdate.Location = *req.Location
 	}
 	if req.CategoryID != nil {
-		itemToUpdate.CategoryID = *req.CategoryID 
+		itemToUpdate.CategoryID = *req.CategoryID
 	}
 
 	if err := s.itemRepo.Update(itemToUpdate); err != nil {

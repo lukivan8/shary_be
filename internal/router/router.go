@@ -52,6 +52,11 @@ func SetupRouter(
 	r.Route("/api/categories", func(r chi.Router) {
 		r.Get("/", categoryHandler.GetAllCategories)
 		r.Post("/", categoryHandler.CreateCategory)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", categoryHandler.GetCategoryByID)
+			r.Put("/", categoryHandler.UpdateCategory)
+			r.Delete("/", categoryHandler.DeleteCategory)
+		})
 	})
 
 	return r
