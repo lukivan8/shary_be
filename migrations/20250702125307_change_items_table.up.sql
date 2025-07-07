@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS items (
     id SERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     description TEXT NOT NULL,
-    image_url TEXT NOT NULL,
     price INTEGER NOT NULL CHECK (price >= 0),
     location VARCHAR(500) NOT NULL,
     has_photos BOOLEAN DEFAULT false,

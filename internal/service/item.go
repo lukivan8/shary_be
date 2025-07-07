@@ -32,17 +32,24 @@ func (s *ItemService) CreateItem(req *models.CreateItemRequest) (*models.Item, e
 		return nil, err
 	}
 
+	var photos []string
+
 	// Create item
 	item := &models.Item{
 		Title:       req.Title,
 		Description: req.Description,
 		Price:       req.Price,
 		Location:    req.Location,
+		HasPhotos:   false,
 		AuthorID:    req.AuthorID,
 		CategoryID:  req.CategoryID,
 	}
 
-	if err := s.itemRepo.Create(item); err != nil {
+	if req.Photos != nil {
+		photos = req.Photos
+	}
+
+	if err := s.itemRepo.Create(item, photos); err != nil {
 		s.logger.Error("Failed to create item", zap.Error(err))
 		return nil, err
 	}

@@ -22,8 +22,14 @@ func NewItemRepository(db *sqlx.DB) *ItemRepository {
 }
 
 // Create creates a new item in the database
-func (r *ItemRepository) Create(item *models.Item) error {
-	query := `
+func (r *ItemRepository) Create(item *models.Item, photos []string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	itemQuery := `
 		INSERT INTO items (title, description, price, location, has_photos, author_id, category_id, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id`
@@ -31,9 +37,10 @@ func (r *ItemRepository) Create(item *models.Item) error {
 	now := time.Now()
 	item.CreatedAt = now
 	item.UpdatedAt = now
+	item.HasPhotos = len(photos) > 0
 
-	return r.db.QueryRow(
-		query,
+	err = tx.QueryRow(
+		itemQuery,
 		item.Title,
 		item.Description,
 		item.Price,
@@ -44,6 +51,30 @@ func (r *ItemRepository) Create(item *models.Item) error {
 		item.CreatedAt,
 		item.UpdatedAt,
 	).Scan(&item.ID)
+
+	if err != nil {
+		return err 
+	}
+
+	if item.HasPhotos {
+		photoQuery := `
+			INSERT INTO item_photos (item_id, url, created_at, updated_at)
+			VALUES ($1, $2, $3, $4)`
+
+		for _, photoURL := range photos {
+			_, err := tx.Exec(
+				photoQuery,
+				item.ID,
+				photoURL,
+				now,
+				now,
+			)
+			if err != nil {
+				return err 
+			}
+		}
+	}
+	return tx.Commit()
 }
 
 // GetByID retrieves an item by ID
@@ -246,4 +277,17 @@ func (r *ItemRepository) GetByCategory(categoryID int) ([]models.ItemResponse, e
 	}
 
 	return items, nil
+}
+
+// GetPhotosByItemID retrieves all photos for an item
+func (r *ItemRepository) GetPhotosByItemID(itemID int) ([]models.ItemPhoto, error) {
+	var photos []models.ItemPhoto
+	query := `SELECT * FROM item_photos WHERE item_id = $1`
+
+	err := r.db.Select(&photos, query, itemID)
+	if err != nil {
+		return nil, err
+	}
+
+	return photos, nil
 }
