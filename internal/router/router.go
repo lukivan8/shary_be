@@ -14,6 +14,7 @@ import (
 // SetupRouter creates and configures the Chi router with all routes and middleware
 func SetupRouter(
 	itemHandler *handlers.ItemHandler,
+	itemPhotoHandler *handlers.ItemPhotoHandler,
 	categoryHandler *handlers.CategoryHandler,
 	logger *zap.Logger,
 ) http.Handler {
@@ -46,6 +47,14 @@ func SetupRouter(
 				r.Delete("/", itemHandler.DeleteItem)
 			})
 		})
+	})
+
+	// Item photo routes
+	r.Route("/api/item_photos", func(r chi.Router) {
+		r.Get("/{item_id}/photos", itemPhotoHandler.GetPhotosByItemID)
+		r.Post("/{item_id}/photos", itemPhotoHandler.AddPhotos)
+		r.Delete("/{item_id}/photos", itemPhotoHandler.DeletePhotos)
+		r.Get("/{item_id}/photos/count", itemPhotoHandler.CountPhotosByItemID)
 	})
 
 	// Category routes

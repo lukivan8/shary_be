@@ -14,13 +14,15 @@ import (
 type ItemService struct {
 	itemRepo *repository.ItemRepository
 	logger   *zap.Logger
+	db       *sql.DB
 }
 
 // NewItemService creates a new item service
-func NewItemService(itemRepo *repository.ItemRepository, logger *zap.Logger) *ItemService {
+func NewItemService(itemRepo *repository.ItemRepository, logger *zap.Logger, db *sql.DB) *ItemService {
 	return &ItemService{
 		itemRepo: itemRepo,
 		logger:   logger,
+		db:       db,
 	}
 }
 
@@ -101,25 +103,53 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 		return nil, err
 	}
 
-	currentItemResponse, err := s.itemRepo.GetByID(id)
+	// 1. Start Transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		s.logger.Error("Failed to begin transaction", zap.Error(err))
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	// Get current item data
+	currentItem, err := s.itemRepo.GetByID(id)
 	if err != nil {
 		s.logger.Error("Failed to get item for update", zap.Int("item_id", id), zap.Error(err))
 		return nil, err
 	}
-	if currentItemResponse == nil {
-		return nil, sql.ErrNoRows
+
+	// 2. Handle Photo Deletions
+	if len(req.PhotoIDsToDelete) > 0 {
+		if err := s.itemRepo.DeletePhotos(tx, req.PhotoIDsToDelete, id); err != nil {
+			s.logger.Error("Failed to delete photos", zap.Int("item_id", id), zap.Error(err))
+			return nil, err
+		}
 	}
 
-	itemToUpdate := &models.Item{
-		ID:          currentItemResponse.ID,
-		Title:       currentItemResponse.Title,
-		Description: currentItemResponse.Description,
-		Price:       currentItemResponse.Price,
-		Location:    currentItemResponse.Location,
-		HasPhotos:   currentItemResponse.HasPhotos,
-		AuthorID:    currentItemResponse.AuthorID,
-		CategoryID:  currentItemResponse.Category.ID,
-		CreatedAt:   currentItemResponse.CreatedAt,
+	// 3. Handle Photo Additions
+	if len(req.PhotosToAdd) > 0 {
+		if err := s.itemRepo.AddPhotos(tx, id, req.PhotosToAdd); err != nil {
+			s.logger.Error("Failed to add photos", zap.Int("item_id", id), zap.Error(err))
+			return nil, err
+		}
+	}
+
+	// 4. Recalculate has_photos flag
+	photoCount, err := s.itemRepo.CountPhotosByItemID(tx, id)
+	if err != nil {
+		s.logger.Error("Failed to count photos", zap.Int("item_id", id), zap.Error(err))
+		return nil, err
+	}
+
+	itemToUpdate := &models.ItemToUpdate{
+		ID:          id,
+		Title:       currentItem.Title,
+		Description: currentItem.Description,
+		Price:       currentItem.Price,
+		Location:    currentItem.Location,
+		CategoryID:  currentItem.Category.ID,
+		HasPhotos:   photoCount > 0,
 	}
 
 	if req.Title != nil {
@@ -138,15 +168,21 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 		itemToUpdate.CategoryID = *req.CategoryID
 	}
 
-	if err := s.itemRepo.Update(itemToUpdate); err != nil {
+	// 6. Update the main item record
+	if err := s.itemRepo.Update(tx, itemToUpdate); err != nil {
 		s.logger.Error("Failed to update item", zap.Int("item_id", id), zap.Error(err))
 		return nil, err
 	}
 
-	// 5. Снова получаем обновленные данные в формате ItemResponse, чтобы вернуть их клиенту
+	// 7. Commit the transaction
+	if err := tx.Commit(); err != nil {
+		s.logger.Error("Failed to commit transaction", zap.Int("item_id", id), zap.Error(err))
+		return nil, err
+	}
+
 	updatedItem, err := s.itemRepo.GetByID(id)
 	if err != nil {
-		s.logger.Error("Failed to get updated item after update", zap.Int("item_id", id), zap.Error(err))
+		s.logger.Error("Failed to get updated item after commit", zap.Int("item_id", id), zap.Error(err))
 		return nil, err
 	}
 

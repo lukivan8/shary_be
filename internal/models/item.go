@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/lib/pq"
 )
 
 // Item represents an item available for rent
@@ -13,6 +14,20 @@ type Item struct {
 	Description string    `json:"description" db:"description" validate:"required,min=10,max=2000"`
 	Price       float64   `json:"price" db:"price" validate:"required,min=0.01"`
 	Location    string    `json:"location" db:"location" validate:"required,min=1,max=500"`
+	HasPhotos   bool      `json:"has_photos" db:"has_photos"`
+	AuthorID    int       `json:"author_id" db:"author_id"`
+	CategoryID  int       `json:"category_id" db:"category_id"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// ItemToUpdate
+type ItemToUpdate struct {
+	ID          int       `json:"id" db:"id"`
+	Title       string    `json:"title" db:"title"`
+	Description string    `json:"description" db:"description"`
+	Price       float64   `json:"price" db:"price"`
+	Location    string    `json:"location" db:"location"`
 	HasPhotos   bool      `json:"has_photos" db:"has_photos"`
 	AuthorID    int       `json:"author_id" db:"author_id"`
 	CategoryID  int       `json:"category_id" db:"category_id"`
@@ -33,12 +48,13 @@ type CreateItemRequest struct {
 
 // UpdateItemRequest represents the request to update an item
 type UpdateItemRequest struct {
-	Title       *string   `json:"title,omitempty" validate:"omitempty,min=1,max=200"`
-	Description *string   `json:"description,omitempty" validate:"omitempty,min=10,max=2000"`
-	Price       *float64  `json:"price,omitempty" validate:"omitempty,min=0.01"`
-	Location    *string   `json:"location,omitempty" validate:"omitempty,min=1,max=500"`
-	CategoryID  *int      `json:"category_id,omitempty" validate:"omitempty,min=1"`
-	Photos      *[]string `json:"photos,omitempty" validate:"omitempty,min=1,max=10"`
+	Title            *string  `json:"title"`
+	Description      *string  `json:"description"`
+	Price            *float64 `json:"price"`
+	Location         *string  `json:"location"`
+	CategoryID       *int     `json:"category_id"`
+	PhotosToAdd      []string `json:"photos_to_add"`
+	PhotoIDsToDelete []int    `json:"photo_ids_to_delete"`
 }
 
 // ItemFilter represents filters for listing items
@@ -60,16 +76,34 @@ type CategoryInfo struct {
 
 // ItemResponse is a struct for the API response that includes full category info
 type ItemResponse struct {
-	ID          int          `json:"id" db:"id"`
-	Title       string       `json:"title" db:"title"`
-	Description string       `json:"description" db:"description"`
-	Price       float64      `json:"price" db:"price"`
-	Location    string       `json:"location" db:"location"`
-	HasPhotos   bool         `json:"has_photos" db:"has_photos"`
-	AuthorID    int          `json:"author_id" db:"author_id"`
-	Category    CategoryInfo `json:"category" db:"category"`
-	CreatedAt   time.Time    `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at" db:"updated_at"`
+	ID          int            `json:"id" db:"id"`
+	Title       string         `json:"title" db:"title"`
+	Description string         `json:"description" db:"description"`
+	Price       float64        `json:"price" db:"price"`
+	Location    string         `json:"location" db:"location"`
+	HasPhotos   bool           `json:"has_photos" db:"has_photos"`
+	Photos      pq.StringArray `json:"photos" db:"photos"`
+	AuthorID    int            `json:"author_id" db:"author_id"`
+	Category    CategoryInfo   `json:"category" db:"category"`
+	CreatedAt   time.Time      `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at" db:"updated_at"`
+}
+
+// ToResponse converts ItemResponse with pq.StringArray to one with []string for JSON
+func (ir *ItemResponse) ToResponse() *ItemResponse {
+	return &ItemResponse{
+		ID:          ir.ID,
+		Title:       ir.Title,
+		Description: ir.Description,
+		Price:       ir.Price,
+		Location:    ir.Location,
+		HasPhotos:   ir.HasPhotos,
+		Photos:      []string(ir.Photos),
+		AuthorID:    ir.AuthorID,
+		Category:    ir.Category,
+		CreatedAt:   ir.CreatedAt,
+		UpdatedAt:   ir.UpdatedAt,
+	}
 }
 
 // Validate validates the struct using go-playground/validator

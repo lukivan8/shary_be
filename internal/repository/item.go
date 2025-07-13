@@ -53,7 +53,7 @@ func (r *ItemRepository) Create(item *models.Item, photos []string) error {
 	).Scan(&item.ID)
 
 	if err != nil {
-		return err 
+		return err
 	}
 
 	if item.HasPhotos {
@@ -70,7 +70,7 @@ func (r *ItemRepository) Create(item *models.Item, photos []string) error {
 				now,
 			)
 			if err != nil {
-				return err 
+				return err
 			}
 		}
 	}
@@ -80,16 +80,23 @@ func (r *ItemRepository) Create(item *models.Item, photos []string) error {
 // GetByID retrieves an item by ID
 func (r *ItemRepository) GetByID(id int) (*models.ItemResponse, error) {
 	var item models.ItemResponse
-	query := `SELECT i.id, i.title, i.description, i.price, i.location, i.has_photos, i.author_id, i.category_id, i.created_at, i.updated_at, c.id AS "category.id", c.name AS "category.name" FROM items i LEFT JOIN categories c ON i.category_id = c.id WHERE i.id = $1`
-
+	query := `
+		SELECT 
+			i.id, i.title, i.description, i.price, i.location, i.has_photos,
+			i.author_id, 
+			c.id AS "category.id", c.name AS "category.name",
+			i.created_at, i.updated_at,
+			COALESCE(array_agg(p.url) FILTER (WHERE p.url IS NOT NULL), '{}') AS photos
+		FROM items i
+		LEFT JOIN categories c ON i.category_id = c.id
+		LEFT JOIN item_photos p ON i.id = p.item_id
+		WHERE i.id = $1
+		GROUP BY i.id, c.id, c.name
+	`
 	err := r.db.Get(&item, query, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
 		return nil, err
 	}
-
 	return &item, nil
 }
 
@@ -163,21 +170,20 @@ func (r *ItemRepository) GetAll(filter *models.ItemFilter) ([]models.ItemRespons
 }
 
 // Update updates an item in the database
-func (r *ItemRepository) Update(item *models.Item) error {
+func (r *ItemRepository) Update(tx *sql.Tx, item *models.ItemToUpdate) error {
 	query := `
 		UPDATE items 
-		SET title = $1, description = $2, price = $3, location = $4, has_photos = $5, author_id = $6, category_id = $7, updated_at = $8
-		WHERE id = $9`
+		SET title = $1, description = $2, price = $3, location = $4, has_photos = $5, category_id = $6, updated_at = $7
+		WHERE id = $8`
 
 	item.UpdatedAt = time.Now()
 
-	result, err := r.db.Exec(query,
+	result, err := tx.Exec(query,
 		item.Title,
 		item.Description,
 		item.Price,
 		item.Location,
 		item.HasPhotos,
-		item.AuthorID,
 		item.CategoryID,
 		item.UpdatedAt,
 		item.ID,
@@ -290,4 +296,56 @@ func (r *ItemRepository) GetPhotosByItemID(itemID int) ([]models.ItemPhoto, erro
 	}
 
 	return photos, nil
+}
+
+// AddPhotos inserts new photos for an item within a transaction.
+func (r *ItemRepository) AddPhotos(tx *sql.Tx, itemID int, photoURLs []string) error {
+	if len(photoURLs) == 0 {
+		return nil
+	}
+
+	stmt, err := tx.Prepare(`INSERT INTO item_photos (item_id, url) VALUES ($1, $2)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, url := range photoURLs {
+		if _, err := stmt.Exec(itemID, url); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// DeletePhotos removes photos by their IDs within a transaction.
+func (r *ItemRepository) DeletePhotos(tx *sql.Tx, photoIDs []int, itemID int) error {
+	if len(photoIDs) == 0 {
+		return nil
+	}
+
+	stmt, err := tx.Prepare(`DELETE FROM item_photos WHERE id = $1 AND item_id = $2`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for _, photoID := range photoIDs {
+		if _, err := stmt.Exec(photoID, itemID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// CountPhotosByItemID counts the total number of photos for an item.
+func (r *ItemRepository) CountPhotosByItemID(tx *sql.Tx, itemID int) (int, error) {
+	var count int
+	query := "SELECT COUNT(*) FROM item_photos WHERE item_id = $1"
+	err := tx.QueryRow(query, itemID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
