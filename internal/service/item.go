@@ -7,6 +7,7 @@ import (
 	"shary_be/internal/models"
 	"shary_be/internal/repository"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -14,11 +15,11 @@ import (
 type ItemService struct {
 	itemRepo *repository.ItemRepository
 	logger   *zap.Logger
-	db       *sql.DB
+	db       *sqlx.DB
 }
 
 // NewItemService creates a new item service
-func NewItemService(itemRepo *repository.ItemRepository, logger *zap.Logger, db *sql.DB) *ItemService {
+func NewItemService(itemRepo *repository.ItemRepository, logger *zap.Logger, db *sqlx.DB) *ItemService {
 	return &ItemService{
 		itemRepo: itemRepo,
 		logger:   logger,
@@ -104,7 +105,7 @@ func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models
 	}
 
 	// 1. Start Transaction
-	tx, err := s.db.Begin()
+	tx, err := s.db.Beginx()
 	if err != nil {
 		s.logger.Error("Failed to begin transaction", zap.Error(err))
 		return nil, err

@@ -74,8 +74,8 @@ func main() {
 	categoryRepo := repository.NewCategoryRepository(db)
 
 	// Initialize services
-	itemService := service.NewItemService(itemRepo, logger, db.DB)
-	itemPhotoService := service.NewItemPhotoService(itemPhotoRepo, logger)
+	itemService := service.NewItemService(itemRepo, logger, db)
+	itemPhotoService := service.NewItemPhotoService(itemPhotoRepo, itemRepo, logger, db)
 	categoryService := service.NewCategoryService(categoryRepo, logger)
 
 	// Initialize handlers

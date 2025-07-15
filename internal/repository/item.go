@@ -170,7 +170,7 @@ func (r *ItemRepository) GetAll(filter *models.ItemFilter) ([]models.ItemRespons
 }
 
 // Update updates an item in the database
-func (r *ItemRepository) Update(tx *sql.Tx, item *models.ItemToUpdate) error {
+func (r *ItemRepository) Update(tx *sqlx.Tx, item *models.ItemToUpdate) error {
 	query := `
 		UPDATE items 
 		SET title = $1, description = $2, price = $3, location = $4, has_photos = $5, category_id = $6, updated_at = $7
@@ -298,8 +298,8 @@ func (r *ItemRepository) GetPhotosByItemID(itemID int) ([]models.ItemPhoto, erro
 	return photos, nil
 }
 
-// AddPhotos inserts new photos for an item within a transaction.
-func (r *ItemRepository) AddPhotos(tx *sql.Tx, itemID int, photoURLs []string) error {
+// AddPhotos inserts new photos for an item within a transaction
+func (r *ItemRepository) AddPhotos(tx *sqlx.Tx, itemID int, photoURLs []string) error {
 	if len(photoURLs) == 0 {
 		return nil
 	}
@@ -318,8 +318,8 @@ func (r *ItemRepository) AddPhotos(tx *sql.Tx, itemID int, photoURLs []string) e
 	return nil
 }
 
-// DeletePhotos removes photos by their IDs within a transaction.
-func (r *ItemRepository) DeletePhotos(tx *sql.Tx, photoIDs []int, itemID int) error {
+// DeletePhotos removes photos by their IDs within a transaction
+func (r *ItemRepository) DeletePhotos(tx *sqlx.Tx, photoIDs []int, itemID int) error {
 	if len(photoIDs) == 0 {
 		return nil
 	}
@@ -339,13 +339,41 @@ func (r *ItemRepository) DeletePhotos(tx *sql.Tx, photoIDs []int, itemID int) er
 	return nil
 }
 
-// CountPhotosByItemID counts the total number of photos for an item.
-func (r *ItemRepository) CountPhotosByItemID(tx *sql.Tx, itemID int) (int, error) {
+// CountByItemID counts photos by item ID, using the provided querier (e.g., tx or db)
+func (r *ItemRepository) CountPhotosByItemID(querier sqlx.Ext, itemID int) (int, error) {
 	var count int
-	query := "SELECT COUNT(*) FROM item_photos WHERE item_id = $1"
-	err := tx.QueryRow(query, itemID).Scan(&count)
+	query := `SELECT COUNT(*) FROM item_photos WHERE item_id = $1`
+
+	err := sqlx.Get(querier, &count, query, itemID)
 	if err != nil {
 		return 0, err
 	}
+
 	return count, nil
+}
+
+// UpdateHasPhotos updates the has_photos flag for an item
+func (r *ItemRepository) UpdateHasPhotos(tx *sqlx.Tx, itemID int, hasPhotos bool) error {
+	query := `
+        UPDATE items
+        SET has_photos = $1, updated_at = $2
+        WHERE id = $3`
+
+	result, err := tx.Exec(query, hasPhotos, time.Now(), itemID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	fmt.Println(rowsAffected)
+
+	return nil
 }

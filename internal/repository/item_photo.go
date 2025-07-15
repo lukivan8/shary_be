@@ -3,9 +3,9 @@ package repository
 import (
 	"database/sql"
 	"shary_be/internal/models"
-	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type ItemPhotoRepository struct {
@@ -29,27 +29,13 @@ func (r *ItemPhotoRepository) GetPhotosByItemID(itemID int) ([]models.ItemPhoto,
 	return photos, nil
 }
 
-// Add creates a new photo for an item
-func (r *ItemPhotoRepository) Add(itemID int, url string) error {
+// Add adds a new photos for an item
+func (r *ItemPhotoRepository) Add(tx *sqlx.Tx, itemID int, urls []string) error {
 	query := `
-		INSERT INTO item_photos (item_id, url, created_at, updated_at)
-		VALUES ($1, $2, $3, $4)`
+		INSERT INTO item_photos (item_id, url)
+		SELECT $1, unnest($2::text[])`
 
-	now := time.Now()
-
-	_, err := r.db.Exec(query, itemID, url, now, now)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Delete deletes a photo by ID
-func (r *ItemPhotoRepository) Delete(id int) error {
-	query := `DELETE FROM item_photos WHERE id = $1`
-
-	result, err := r.db.Exec(query, id)
+	result, err := tx.Exec(query, itemID, pq.Array(urls))
 	if err != nil {
 		return err
 	}
@@ -66,12 +52,32 @@ func (r *ItemPhotoRepository) Delete(id int) error {
 	return nil
 }
 
-// CounByItemID counts photos by item ID
-func (r *ItemPhotoRepository) CountByItemID(itemID int) (int, error) {
+// Delete deletes a photos by ID
+func (r *ItemPhotoRepository) Delete(tx *sqlx.Tx, ids []int) error {
+	query := `DELETE FROM item_photos WHERE id = ANY($1)`
+
+	result, err := tx.Exec(query, pq.Array(ids))
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+// CountByItemID counts photos by item ID, using the provided querier (e.g., tx or db).
+func (r *ItemPhotoRepository) CountByItemID(querier sqlx.Ext, itemID int) (int, error) {
 	var count int
 	query := `SELECT COUNT(*) FROM item_photos WHERE item_id = $1`
 
-	err := r.db.Get(&count, query, itemID)
+	err := sqlx.Get(querier, &count, query, itemID)
 	if err != nil {
 		return 0, err
 	}
