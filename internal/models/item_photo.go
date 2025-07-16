@@ -15,8 +15,12 @@ type ItemPhoto struct {
 }
 
 type CreateItemPhotoRequest struct {
-	ItemID int    `json:"item_id" validate:"required,min=1"`
-	URL    string `json:"url" validate:"required,url"`
+	ItemID int      `json:"item_id" validate:"required,min=1"`
+	Photos []string `json:"photos" validate:"required,min=1"`
+}
+
+type DeleteItemPhotosRequest struct {
+	PhotoIDs []int `json:"photo_ids" validate:"required,min=1"`
 }
 
 func (i *ItemPhoto) Validate() error {
