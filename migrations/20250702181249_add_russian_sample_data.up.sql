@@ -68,3 +68,32 @@ INSERT INTO favorite_items (item_id, user_id) VALUES
 (5, 3),
 (7, 1),
 (8, 2); 
+
+-- Аренда 1: iPhone 14 Pro (item_id=1) пользователем Мария Петрова (user_id=2)
+INSERT INTO rents (item_id, user_id, start_date, end_date, price, status_id) VALUES
+(1, 2, '2025-07-20 14:00:00+05', '2025-07-22 12:00:00+05', 15000, 4);
+
+-- Аренда 2: Горный велосипед (item_id=2) пользователем Дмитрий Сидоров (user_id=3)
+INSERT INTO rents (item_id, user_id, start_date, end_date, price, status_id) VALUES
+(2, 3, '2025-08-01 10:00:00+05', '2025-08-05 18:00:00+05', 4500, 1);
+
+-- Аренда 3: Ноутбук Dell (item_id=5) пользователем Александр Иванов (user_id=1)
+INSERT INTO rents (item_id, user_id, start_date, end_date, price, status_id) VALUES
+(4, 1, '2025-07-25 09:00:00+05', '2025-07-30 19:00:00+05', 36000, 1);
+
+-- Аренда 4: Кофемашина (item_id=7) пользователем Анна Козлова (user_id=4)
+INSERT INTO rents (item_id, user_id, start_date, end_date, price, status_id) VALUES
+(3, 4, '2025-08-10 11:00:00+05', '2025-08-12 11:00:00+05', 1000, 1);
+
+
+-- Вставляем данные о заблокированных периодах (blocked_periods)
+-- Это периоды, когда товар недоступен не из-за бронирования, а по другим причинам.
+
+-- Блокировка 1: Книга "Война и мир" (item_id=3) недоступна из-за личного использования
+INSERT INTO blocked_periods (item_id, reason, start_date, end_date) VALUES
+(3, 'Личное использование владельцем', '2025-07-18 00:00:00+05', '2025-07-19 23:59:59+05');
+
+-- Блокировка 2: Гитара (item_id=8) на ремонте
+INSERT INTO blocked_periods (item_id, reason, start_date, end_date) VALUES
+(8, 'Ремонт и настройка', '2025-08-20 00:00:00+05', '2025-08-25 23:59:59+05');
+

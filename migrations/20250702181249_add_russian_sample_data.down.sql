@@ -20,3 +20,8 @@ DELETE FROM categories WHERE name IN ('Электроника', 'Одежда и
 
 -- Remove sample users
 DELETE FROM users WHERE identity IN ('123456789012', '234567890123', '345678901234', '456789012345', '567890123456'); 
+
+-- Удаляем все записи из таблиц bookings и blocked_periods.
+-- Использование TRUNCATE является более быстрым способом очистки таблиц,
+-- и также сбрасывает последовательности (SERIAL), если это необходимо.
+TRUNCATE TABLE blocked_periods RESTART IDENTITY;

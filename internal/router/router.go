@@ -16,6 +16,7 @@ func SetupRouter(
 	itemHandler *handlers.ItemHandler,
 	itemPhotoHandler *handlers.ItemPhotoHandler,
 	categoryHandler *handlers.CategoryHandler,
+	rentHandler *handlers.RentHandler,
 	logger *zap.Logger,
 ) http.Handler {
 	r := chi.NewRouter()
@@ -65,6 +66,23 @@ func SetupRouter(
 			r.Get("/", categoryHandler.GetCategoryByID)
 			r.Put("/", categoryHandler.UpdateCategory)
 			r.Delete("/", categoryHandler.DeleteCategory)
+		})
+	})
+
+	// Rent routes
+	r.Route("/api/rents", func(r chi.Router) {
+		r.Get("/", rentHandler.GetAllRents)
+		r.Post("/", rentHandler.CreateRent)
+		r.Route("/item/{item_id}", func(r chi.Router) {
+			r.Get("/", rentHandler.GetRentByItemID)
+		})
+		r.Route("/user/{user_id}", func(r chi.Router) {
+			r.Get("/", rentHandler.GetRentByUserID)
+		})
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", rentHandler.GetRentByID)
+			r.Put("/", rentHandler.UpdateRent)
+			r.Delete("/", rentHandler.DeleteRent)
 		})
 	})
 

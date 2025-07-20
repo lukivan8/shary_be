@@ -58,3 +58,23 @@ CREATE TABLE IF NOT EXISTS favorite_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(item_id, user_id)
 ); 
+
+-- Создаем таблицу для хранения заблокированных периодов (blocked_periods)
+CREATE TABLE IF NOT EXISTS blocked_periods (
+    id SERIAL PRIMARY KEY,
+    item_id INT NOT NULL,
+    reason TEXT,
+    start_date TIMESTAMPTZ NOT NULL,
+    end_date TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    -- Добавляем ограничение, чтобы дата окончания была после даты начала
+    CONSTRAINT end_date_after_start_date_check CHECK (end_date > start_date)
+
+    -- CONSTRAINT fk_item FOREIGN KEY(item_id) REFERENCES items(id) ON DELETE CASCADE
+);
+
+-- Добавляем индексы для полей, по которым часто будет происходить поиск,
+-- чтобы ускорить запросы на проверку доступности.
+CREATE INDEX IF NOT EXISTS idx_blocked_periods_item_id ON blocked_periods(item_id);

@@ -72,19 +72,22 @@ func main() {
 	itemRepo := repository.NewItemRepository(db)
 	itemPhotoRepo := repository.NewItemPhotoRepository(db)
 	categoryRepo := repository.NewCategoryRepository(db)
+	rentRepo := repository.NewRentRepository(db)
 
 	// Initialize services
 	itemService := service.NewItemService(itemRepo, logger, db)
 	itemPhotoService := service.NewItemPhotoService(itemPhotoRepo, itemRepo, logger, db)
 	categoryService := service.NewCategoryService(categoryRepo, logger)
+	rentService := service.NewRentService(rentRepo, logger, db)
 
 	// Initialize handlers
 	itemHandler := handlers.NewItemHandler(itemService, logger)
 	itemPhotoHandler := handlers.NewItemPhotoHandler(itemPhotoService, logger)
 	categoryHandler := handlers.NewCategoryHandler(categoryService, logger)
+	rentHandler := handlers.NewRentHandler(rentService, logger)
 
 	// Setup Chi router
-	handler := router.SetupRouter(itemHandler, itemPhotoHandler, categoryHandler, logger)
+	handler := router.SetupRouter(itemHandler, itemPhotoHandler, categoryHandler, rentHandler, logger)
 
 	// Create server
 	server := &http.Server{
