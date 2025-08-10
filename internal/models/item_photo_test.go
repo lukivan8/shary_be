@@ -50,7 +50,7 @@ func TestCreateItemPhotoRequest_Validate(t *testing.T) {
 			name: "valid item photo",
 			req: CreateItemPhotoRequest{
 				ItemID: 1,
-				URL:    "https://example.com/bike.jpg",
+				Photos: []string{"https://example.com/bike.jpg"},
 			},
 			wantErr: false,
 		},
@@ -58,7 +58,7 @@ func TestCreateItemPhotoRequest_Validate(t *testing.T) {
 			name: "invalid item photo",
 			req: CreateItemPhotoRequest{
 				ItemID: 1,
-				URL:    "not-a-url",
+				Photos: []string{"not-a-url"},
 			},
 			wantErr: true,
 		},

@@ -24,6 +24,12 @@ type UpdateCategoryRequest struct {
 	Name *string `json:"name,omitempty" validate:"omitempty,min=1,max=50"`
 }
 
+// CategoryResponse is a struct for the API response that includes full category info
+type CategoryResponse struct {
+	ID   int    `json:"id" db:"id"`
+	Name string `json:"name" db:"name"`
+}
+
 // Validate validates the struct using go-playground/validator
 func (c *Category) Validate() error {
 	validate := validator.New()
