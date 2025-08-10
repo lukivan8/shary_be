@@ -56,6 +56,12 @@ func (h *ItemHandler) GetAllItems(w http.ResponseWriter, r *http.Request) {
 		filter.Search = &search
 	}
 
+	if categoryIDStr := r.URL.Query().Get("category_id"); categoryIDStr != "" {
+		if categoryID, err := strconv.Atoi(categoryIDStr); err == nil && categoryID > 0 {
+			filter.CategoryID = &categoryID
+		}
+	}
+
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
 			filter.Limit = limit
@@ -225,5 +231,36 @@ func (h *ItemHandler) GetItemsByLocation(w http.ResponseWriter, r *http.Request)
 		"items":    items,
 		"count":    len(items),
 		"location": location,
+	})
+}
+
+// GetItemsByCategory handles GET /api/items/category/{category_id}
+func (h *ItemHandler) GetItemsByCategory(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	categoryIDStr := chi.URLParam(r, "category_id")
+	categoryID, err := strconv.Atoi(categoryIDStr)
+	if err != nil {
+		http.Error(w, "Invalid category ID", http.StatusBadRequest)
+		return
+	}
+
+	items, err := h.itemService.GetItemsByCategory(categoryID)
+	if err != nil {
+		h.logger.Error("Failed to get items by category", zap.Error(err))
+
+		if err.Error() == "category_id cannot be empty" {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"items":    items,
+		"count":    len(items),
+		"category": categoryID,
 	})
 }

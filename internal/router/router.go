@@ -12,7 +12,12 @@ import (
 )
 
 // SetupRouter creates and configures the Chi router with all routes and middleware
-func SetupRouter(itemHandler *handlers.ItemHandler, logger *zap.Logger) http.Handler {
+func SetupRouter(
+	itemHandler *handlers.ItemHandler,
+	itemPhotoHandler *handlers.ItemPhotoHandler,
+	categoryHandler *handlers.CategoryHandler,
+	logger *zap.Logger,
+) http.Handler {
 	r := chi.NewRouter()
 
 	// Add Chi's built-in middleware
@@ -29,17 +34,37 @@ func SetupRouter(itemHandler *handlers.ItemHandler, logger *zap.Logger) http.Han
 	// Health check endpoint
 	r.Get("/health", healthCheckHandler)
 
-	// API routes
+	// Item routes
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/items", func(r chi.Router) {
 			r.Get("/", itemHandler.GetAllItems)
 			r.Post("/", itemHandler.CreateItem)
 			r.Get("/location/{location}", itemHandler.GetItemsByLocation)
+			r.Get("/category/{category_id}", itemHandler.GetItemsByCategory)
 			r.Route("/{id}", func(r chi.Router) {
 				r.Get("/", itemHandler.GetItemByID)
 				r.Put("/", itemHandler.UpdateItem)
 				r.Delete("/", itemHandler.DeleteItem)
 			})
+		})
+	})
+
+	// Item photo routes
+	r.Route("/api/item_photos", func(r chi.Router) {
+		r.Get("/{item_id}/photos", itemPhotoHandler.GetPhotosByItemID)
+		r.Post("/{item_id}/photos", itemPhotoHandler.AddPhotos)
+		r.Delete("/{item_id}/photos", itemPhotoHandler.DeletePhotos)
+		r.Get("/{item_id}/photos/count", itemPhotoHandler.CountPhotosByItemID)
+	})
+
+	// Category routes
+	r.Route("/api/categories", func(r chi.Router) {
+		r.Get("/", categoryHandler.GetAllCategories)
+		r.Post("/", categoryHandler.CreateCategory)
+		r.Route("/{id}", func(r chi.Router) {
+			r.Get("/", categoryHandler.GetCategoryByID)
+			r.Put("/", categoryHandler.UpdateCategory)
+			r.Delete("/", categoryHandler.DeleteCategory)
 		})
 	})
 

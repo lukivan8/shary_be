@@ -7,6 +7,7 @@ import (
 	"shary_be/internal/models"
 	"shary_be/internal/repository"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -14,13 +15,15 @@ import (
 type ItemService struct {
 	itemRepo *repository.ItemRepository
 	logger   *zap.Logger
+	db       *sqlx.DB
 }
 
 // NewItemService creates a new item service
-func NewItemService(itemRepo *repository.ItemRepository, logger *zap.Logger) *ItemService {
+func NewItemService(itemRepo *repository.ItemRepository, logger *zap.Logger, db *sqlx.DB) *ItemService {
 	return &ItemService{
 		itemRepo: itemRepo,
 		logger:   logger,
+		db:       db,
 	}
 }
 
@@ -32,17 +35,24 @@ func (s *ItemService) CreateItem(req *models.CreateItemRequest) (*models.Item, e
 		return nil, err
 	}
 
+	var photos []string
+
 	// Create item
 	item := &models.Item{
 		Title:       req.Title,
 		Description: req.Description,
 		Price:       req.Price,
 		Location:    req.Location,
+		HasPhotos:   false,
 		AuthorID:    req.AuthorID,
 		CategoryID:  req.CategoryID,
 	}
 
-	if err := s.itemRepo.Create(item); err != nil {
+	if req.Photos != nil {
+		photos = req.Photos
+	}
+
+	if err := s.itemRepo.Create(item, photos); err != nil {
 		s.logger.Error("Failed to create item", zap.Error(err))
 		return nil, err
 	}
@@ -52,7 +62,7 @@ func (s *ItemService) CreateItem(req *models.CreateItemRequest) (*models.Item, e
 }
 
 // GetItemByID retrieves an item by ID
-func (s *ItemService) GetItemByID(id int) (*models.Item, error) {
+func (s *ItemService) GetItemByID(id int) (*models.ItemResponse, error) {
 	item, err := s.itemRepo.GetByID(id)
 	if err != nil {
 		s.logger.Error("Failed to get item by ID", zap.Int("item_id", id), zap.Error(err))
@@ -67,7 +77,7 @@ func (s *ItemService) GetItemByID(id int) (*models.Item, error) {
 }
 
 // GetAllItems retrieves all items with optional filtering
-func (s *ItemService) GetAllItems(filter *models.ItemFilter) ([]models.Item, error) {
+func (s *ItemService) GetAllItems(filter *models.ItemFilter) ([]models.ItemResponse, error) {
 	// Set default pagination if not provided
 	if filter != nil {
 		if filter.Limit <= 0 {
@@ -88,49 +98,97 @@ func (s *ItemService) GetAllItems(filter *models.ItemFilter) ([]models.Item, err
 }
 
 // UpdateItem updates an item
-func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models.Item, error) {
-	// Validate request
+func (s *ItemService) UpdateItem(id int, req *models.UpdateItemRequest) (*models.ItemResponse, error) {
 	if err := req.Validate(); err != nil {
 		s.logger.Error("Invalid update item request", zap.Error(err))
 		return nil, err
 	}
 
-	// Get existing item
-	item, err := s.itemRepo.GetByID(id)
+	// 1. Start Transaction
+	tx, err := s.db.Beginx()
+	if err != nil {
+		s.logger.Error("Failed to begin transaction", zap.Error(err))
+		return nil, err
+	}
+
+	defer tx.Rollback()
+
+	// Get current item data
+	currentItem, err := s.itemRepo.GetByID(id)
 	if err != nil {
 		s.logger.Error("Failed to get item for update", zap.Int("item_id", id), zap.Error(err))
 		return nil, err
 	}
 
-	if item == nil {
-		return nil, sql.ErrNoRows
+	// 2. Handle Photo Deletions
+	if len(req.PhotoIDsToDelete) > 0 {
+		if err := s.itemRepo.DeletePhotos(tx, req.PhotoIDsToDelete, id); err != nil {
+			s.logger.Error("Failed to delete photos", zap.Int("item_id", id), zap.Error(err))
+			return nil, err
+		}
 	}
 
-	// Update fields if provided
+	// 3. Handle Photo Additions
+	if len(req.PhotosToAdd) > 0 {
+		if err := s.itemRepo.AddPhotos(tx, id, req.PhotosToAdd); err != nil {
+			s.logger.Error("Failed to add photos", zap.Int("item_id", id), zap.Error(err))
+			return nil, err
+		}
+	}
+
+	// 4. Recalculate has_photos flag
+	photoCount, err := s.itemRepo.CountPhotosByItemID(tx, id)
+	if err != nil {
+		s.logger.Error("Failed to count photos", zap.Int("item_id", id), zap.Error(err))
+		return nil, err
+	}
+
+	itemToUpdate := &models.ItemToUpdate{
+		ID:          id,
+		Title:       currentItem.Title,
+		Description: currentItem.Description,
+		Price:       currentItem.Price,
+		Location:    currentItem.Location,
+		CategoryID:  currentItem.Category.ID,
+		HasPhotos:   photoCount > 0,
+	}
+
 	if req.Title != nil {
-		item.Title = *req.Title
+		itemToUpdate.Title = *req.Title
 	}
 	if req.Description != nil {
-		item.Description = *req.Description
+		itemToUpdate.Description = *req.Description
 	}
 	if req.Price != nil {
-		item.Price = *req.Price
+		itemToUpdate.Price = *req.Price
 	}
 	if req.Location != nil {
-		item.Location = *req.Location
+		itemToUpdate.Location = *req.Location
 	}
 	if req.CategoryID != nil {
-		item.CategoryID = req.CategoryID
+		itemToUpdate.CategoryID = *req.CategoryID
 	}
 
-	// Update item in database
-	if err := s.itemRepo.Update(item); err != nil {
+	// 6. Update the main item record
+	if err := s.itemRepo.Update(tx, itemToUpdate); err != nil {
 		s.logger.Error("Failed to update item", zap.Int("item_id", id), zap.Error(err))
 		return nil, err
 	}
 
+	// 7. Commit the transaction
+	if err := tx.Commit(); err != nil {
+		s.logger.Error("Failed to commit transaction", zap.Int("item_id", id), zap.Error(err))
+		return nil, err
+	}
+
+	updatedItem, err := s.itemRepo.GetByID(id)
+	if err != nil {
+		s.logger.Error("Failed to get updated item after commit", zap.Int("item_id", id), zap.Error(err))
+		return nil, err
+	}
+
 	s.logger.Info("Item updated successfully", zap.Int("item_id", id))
-	return item, nil
+	return updatedItem, nil
 }
 
 // DeleteItem deletes an item
@@ -157,7 +215,7 @@ func (s *ItemService) DeleteItem(id int) error {
 }
 
 // GetItemsByLocation retrieves items by location
-func (s *ItemService) GetItemsByLocation(location string) ([]models.Item, error) {
+func (s *ItemService) GetItemsByLocation(location string) ([]models.ItemResponse, error) {
 	if location == "" {
 		return nil, errors.New("location cannot be empty")
 	}
@@ -172,10 +230,25 @@ func (s *ItemService) GetItemsByLocation(location string) ([]models.Item, error)
 }
 
 // GetAvailableItems retrieves only available items
-func (s *ItemService) GetAvailableItems() ([]models.Item, error) {
+func (s *ItemService) GetAvailableItems() ([]models.ItemResponse, error) {
 	items, err := s.itemRepo.GetAvailableItems()
 	if err != nil {
 		s.logger.Error("Failed to get available items", zap.Error(err))
+		return nil, err
+	}
+
+	return items, nil
+}
+
+// GetItemsByCategory retrieves items by category
+func (s *ItemService) GetItemsByCategory(categoryID int) ([]models.ItemResponse, error) {
+	if categoryID <= 0 {
+		return nil, errors.New("category_id must be greater than 0")
+	}
+
+	items, err := s.itemRepo.GetByCategory(categoryID)
+	if err != nil {
+		s.logger.Error("Failed to get items by category", zap.Int("category_id", categoryID), zap.Error(err))
 		return nil, err
 	}
 
